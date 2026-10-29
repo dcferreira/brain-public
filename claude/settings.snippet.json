@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/projects/brain/claude/hooks/brain-session-start.sh",
+            "timeout": 15,
+            "statusMessage": "Loading vault context..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/projects/brain/claude/hooks/brain-session-end.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "attribution": {
+    "sessionUrl": false
+  }
+}

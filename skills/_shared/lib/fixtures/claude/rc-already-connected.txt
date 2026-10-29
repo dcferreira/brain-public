@@ -1,0 +1,40 @@
+
+ ▐▛███▛█   Claude Code v2.1.303
+▝▜██████▀  Opus 5.5 · Claude Team
+ ▝▝   ▝▝   /…/-home-example-user-projects-brain/00000000-0000-4000-8000-000000000000/scratchpad/rcflag · /rc
+
+
+  /remote-control is active · Continue here, on your phone, or at
+  https://claude.ai/code/session_01ExampleSessionId000000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Remote Control
+
+   This session is available in the Claude mobile app and at https://claude.ai/code/session_01ExampleSessionId000000.
+
+     Disconnect this session
+     Show QR code   Scan with your phone to open this session
+   ❯ Continue
+
+   Enter to select · Esc to continue

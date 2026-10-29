@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""brain-search: scope-aware qmd wrapper. Stdlib only."""
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from brain_scope import (load_registry, norm_scope, read_frontmatter, resolve,  # noqa: E402
+                         scope_includes, vault_root)
+
+
+def warn(msg):
+    sys.stderr.write("brain-search: %s\n" % msg)
+
+
+def find_qmd():
+    """BRAIN_QMD (if executable) -> qmd on PATH -> ~/.nodenv/shims/qmd -> ~/.local/bin/qmd.
+    Mirrors claude/hooks/brain-session-start.sh. Returns None when nothing is found."""
+    env = os.environ.get("BRAIN_QMD")
+    if env and os.access(env, os.X_OK):
+        return env
+    found = shutil.which("qmd")
+    if found:
+        return found
+    home = os.path.expanduser("~")
+    for cand in (os.path.join(home, ".nodenv", "shims", "qmd"), os.path.join(home, ".local", "bin", "qmd")):
+        if os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+    return None
+
+
+def run_qmd(qmd, index, query, fetch):
+    cmd = [qmd] + (["--index", index] if index else []) + ["search", query, "--format", "json", "-n", str(fetch)]
+    label = index or "default"
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=120)
+    except (OSError, subprocess.SubprocessError) as e:
+        warn("qmd (%s index) failed: %s" % (label, e))
+        return []
+    if p.returncode != 0:
+        warn("qmd (%s index) exited %d" % (label, p.returncode))
+        return []
+    try:
+        data = json.loads(p.stdout)
+    except ValueError:
+        warn("qmd (%s index) returned non-JSON output" % label)
+        return []
+    if not isinstance(data, list):
+        warn("qmd (%s index) returned unexpected JSON" % label)
+        return []
+    return [h for h in data if isinstance(h, dict)]
+
+
+def to_path(vault, file):
+    """qmd://vault/<rel> -> <vault>/<rel>; qmd://private/<rel> -> <vault>/private/<rel>."""
+    if not isinstance(file, str) or not file.startswith("qmd://"):
+        return None
+    file = file.split("?", 1)[0]  # qmd appends ?index=<name> for non-default indexes
+    coll, _, rel = file[len("qmd://"):].partition("/")
+    if not rel:
+        return None
+    if coll == "private":
+        rel = "private/" + rel
+    return os.path.join(vault, rel)
+
+
+def frontmatter_of(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace", newline="") as f:
+            return read_frontmatter(f.read())
+    except OSError:
+        return None
+
+
+def main(argv):
+    scope = norm_scope(os.environ.get("BRAIN_SCOPE"))
+    project = os.environ.get("BRAIN_PROJECT", "")
+    n = 5
+    as_json = False
+    words = []
+    i = 0
+    try:
+        while i < len(argv):
+            a = argv[i]
+            if a == "--scope":
+                scope = norm_scope(argv[i + 1]); i += 2
+            elif a == "--project":
+                project = argv[i + 1]; i += 2
+            elif a == "-n":
+                n = int(argv[i + 1]); i += 2
+            elif a == "--json":
+                as_json = True; i += 1
+            else:
+                words.append(a); i += 1
+    except (IndexError, ValueError):
+        sys.stderr.write("usage: brain-search [--scope S] [--project P] [-n N] [--json] <query...>\n")
+        return 2
+    query = " ".join(words)
+    if not query or n < 1:
+        sys.stderr.write("usage: brain-search [--scope S] [--project P] [-n N] [--json] <query...>\n")
+        return 2
+
+    vault = vault_root()
+    qmd = find_qmd()
+    if qmd is None:
+        warn("qmd not found (checked BRAIN_QMD, PATH, ~/.nodenv/shims, ~/.local/bin) - skipping")
+        return 0
+    slug = None
+    if project:
+        ent = resolve(project, load_registry(vault))
+        slug = (ent.project if ent else project).lower()
+    fetch = n * 5 if slug else n
+    allow_private = scope_includes(scope, "private")
+    private_root = os.path.join(vault, "private") + os.sep
+
+    lists = [run_qmd(qmd, None, query, fetch)]
+    if allow_private:
+        lists.append(run_qmd(qmd, "private", query, fetch))
+
+    def keep(hits):
+        kept = []
+        for h in hits:
+            path = to_path(vault, h.get("file"))
+            if path is None:
+                continue
+            fm = None
+            if slug or not allow_private:
+                fm = frontmatter_of(path)
+            if not allow_private:
+                if fm is None:  # file gone: a stale index may carry a moved private note's snippet
+                    continue
+                if os.path.normpath(path).startswith(os.path.normpath(private_root)):
+                    continue
+                if fm.get("area", "").strip().lower() == "private":
+                    continue
+            if slug:
+                if fm is None or fm.get("project", "").strip().lower() != slug:
+                    continue
+            try:
+                score = float(h.get("score", 0))
+            except (TypeError, ValueError):
+                score = 0.0
+            kept.append((score, os.path.relpath(path, vault), h))
+        return kept
+
+    # Scores are not comparable across qmd indexes: interleave per-index rank
+    # (round-robin), keeping qmd's order within each index.
+    filtered = [keep(hits) for hits in lists]
+    kept = []
+    for rank in range(max(len(f) for f in filtered)):
+        for f in filtered:
+            if rank < len(f):
+                kept.append(f[rank])
+    kept = kept[:n]
+    if as_json:
+        out = [dict(h, path=rel, score=score) for score, rel, h in kept]
+        if out:
+            print(json.dumps(out, indent=2))
+        return 0
+    for score, rel, h in kept:
+        print("## %s\n%s · score %s\n\n%s\n" % (h.get("title") or rel, rel, score, h.get("snippet") or ""))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

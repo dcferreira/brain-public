@@ -1,0 +1,6 @@
+╭─ Allow tool: bash ───────────────────────────╮
+│ Command: sleep 25 && echo SLEPT              │
+│  ❯ Approve                                   │
+│    Deny                                      │
+│ up/down navigate  enter select  esc cancel   │
+╰──────────────────────────────────────────────╯

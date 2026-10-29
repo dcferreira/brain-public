@@ -1,0 +1,68 @@
+
+
+  Ran 1 shell command
+
+● Checks are green on Linux: fmt, clippy and 270 tests pass. I'm now sending the fixed commits to an independent reviewer.
+
+● Agent(Review Linux quiet probes diff)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+● The implementation is in four commits: one each for idle, DND and mic, plus the changie fragment. I reran the checks myself
+  and fmt, clippy and the 270 tests pass on Linux. CI will check macOS and Windows.
+
+  Each probe uses the mechanism we agreed:
+  - Idle: reads GNOME's idle time, with the freedesktop screensaver idle time as a fallback.
+  - DND: treats GNOME's notification-banners setting being off as Do Not Disturb on.
+  - Mic: counts the mic as in use when any non-monitor source is recording, so EasyEffects' virtual mic counts too.
+
+  If a desktop tool or service is missing, that probe reports "not quiet", so it can't break every scheduler tick. If a tool
+  answers with something unparsable, the probe fails loudly.
+
+  A reviewer is now going over those fixed commits. I asked it to check whether the code still compiles on macOS and Windows,
+  and whether a slow call to GNOME's idle service could stall a scheduler tick. Once its findings are in and handled, I'll
+  push the budgebell-linux-quiet-probes branch and open the PR.
+
+› Message from @general-purpose (ctrl+o to expand)
+
+● The review's main points hold up. I'm having the subagent fix the ones inside probe scope:
+
+● Agent(Address review findings on probes) Sonnet 5.5
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+● Agent "Review Linux quiet probes diff" finished · 2m 41s
+
+● The review turned up two real issues, and a Sonnet subagent is fixing those plus three smaller ones now:
+
+  1. Probes could freeze the app. The shelled-out tools had no timeout, and the probes run while the app holds its main state
+     lock. If GNOME Shell or PipeWire hung, complete, skip and snooze would block until it recovered. The fix is a 2 s
+     deadline on every tool call. If a call runs over, the tool is killed and the probe treats that as "not quiet".
+  2. The mic could look in use forever. The current check counts any recording mic source, so an always-on reader would pause
+     nudges indefinitely. That includes EasyEffects input processing, filter chains and level meters. The fix is to count
+     only actual recording streams from apps, skipping paused streams, desktop-audio recording, pavucontrol level meters and
+     EasyEffects' own stream. It'll be tested against real pactl output captured on your machine.
+  3. Smaller fixes:
+     - Make the tool runner swappable, so the idle fallback and "tool missing" cases can be unit-tested.
+     - Fail loudly when pactl returns JSON that isn't a list.
+     - Run the tools with LC_ALL=C so their output format doesn't depend on locale.
+
+  Left out on purpose, for the PR notes:
+  - Lock scope: the reviewer also suggested releasing the lock around the probe in list_due_now. That code is in
+    commands/handlers.rs, outside this worker's probe-only scope.
+  - Idle-only probe: the scheduler runs every probe just to read idle. That's in runtime.rs, which the cooldown worker owns.
+  - No log on degrade: a probe that falls back to "not quiet" doesn't log anything yet.
+  - Older pactl: PulseAudio before 16 has no JSON output, so mic pause can't work on Debian 11 / RHEL 9-era systems.
+  - KDE idle unverified: I haven't been able to check whether the screensaver fallback actually works on KDE.
+
+› Message from @general-purpose (ctrl+o to expand)
+
+✢ Beaming… (2s · thinking)
+  ⎿  Tip: Connect Claude to your IDE · /ide
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [Opus 5.5] │ budgebell git:(detached:0bcc026) │ Budgebell Linux quiet probes
+  Context █░░░░░░░░░ 10% │ Usage ██████░░░░ 56% (resets in 22m)
+  ◐ agent [sonnet-5.5]: Address review findings on probes (10s)
+  ✓ agent [opus-5.5]: Review Linux quiet probes diff (2m 40s)
+  ⏵⏵ auto mode on (shift+tab to cycle) · /tasks to see subagents · ← for agents

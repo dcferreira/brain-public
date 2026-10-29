@@ -1,0 +1,30 @@
+
+
+❯ run: sleep 20 && echo done
+
+  Ran 1 shell command
+
+● The command ran and printed done after the 20 second sleep.
+
+  The worker brief is still missing. Point me at the right file in ~/Sync/Obsidian/vault/workers/
+  whenever you're ready.
+
+✻ Sautéed for 27s · done 13:25
+
+❯ ask me a yes/no question using your question tool
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Find brief
+
+│ Should I look for the worker brief under a different name in the workers folder, such as the most
+│ recently edited one?
+
+❯ 1. Yes
+     I'll open the most recently edited brief in ~/Sync/Obsidian/vault/workers/ and follow its
+     priming.
+  2. No
+     I'll wait for you to give me the correct filename or paste the brief.
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel

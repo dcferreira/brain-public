@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+{{THEME_CSS}}
+
+:root {
+  --font-display: "Bricolage Grotesque", "Schibsted Grotesk", system-ui, sans-serif;
+  --font-body: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 8px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+}
+button, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap {
+  max-width: 980px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  padding-block: 24px 64px;
+  display: grid;
+  gap: 20px;
+}
+
+header { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+header > div:first-child { min-width: 0; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.15; text-wrap: balance; }
+h1 .mark { color: var(--accent); margin-right: 8px; }
+.sub { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.sync { font-family: var(--font-mono); font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; padding-top: 8px; }
+.sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--idle); }
+.sync.live .dot { background: var(--ok); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.waiting { padding: 14px 16px; display: grid; gap: 10px; }
+.waiting.has { border-color: var(--warn); }
+.sec-head { display: flex; align-items: center; gap: 10px; }
+.sec-head h2 { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.pill { font-family: var(--font-mono); font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--idle-soft); color: var(--muted); }
+.waiting.has .pill { background: var(--warn-soft); color: var(--warn); }
+.empty { margin: 0; color: var(--muted); font-size: 13px; }
+.wlist { display: grid; gap: 0; }
+.wrow { display: grid; grid-template-columns: minmax(0,220px) minmax(0,1fr) auto; gap: 12px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+.wrow:first-child { border-top: 0; }
+.wrow .who { font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+.wrow .what { min-width: 0; overflow-wrap: anywhere; }
+.wlink { margin-left: 8px; font-size: 13px; white-space: nowrap; }
+.since { margin-left: 8px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 6px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.ghost { background: transparent; font-size: 12px; padding: 4px 10px; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:disabled { opacity: .55; cursor: default; }
+
+.composer { padding: 14px 16px; display: grid; gap: 8px; }
+.composer label { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+.composer textarea { width: 100%; min-height: 76px; resize: vertical; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); }
+.composer .row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.hint { margin: 0; font-size: 12px; color: var(--muted); min-width: 0; flex: 1 1 240px; }
+.hint.err { color: var(--bad); }
+.hint.ok { color: var(--ok); }
+
+.summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 999px; background: var(--idle-soft); color: var(--idle); white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.s-done, .chip.s-collected, .chip.s-merged { background: var(--ok-soft); color: var(--ok); }
+.chip.s-in-progress, .chip.s-working, .chip.s-dispatched { background: var(--run-soft); color: var(--run); }
+.chip.s-in-review, .chip.s-primed, .chip.s-approved { background: var(--warn-soft); color: var(--warn); }
+.chip.s-blocked { background: var(--bad-soft); color: var(--bad); }
+.chip.s-proposed { background: var(--accent-soft); color: var(--accent); }
+.summary .chip { border: 1px solid var(--line); }
+.summary .chip b { font-family: var(--font-mono); font-weight: 500; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { border: 0; background: transparent; padding: 8px 14px; cursor: pointer; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab .n { font-family: var(--font-mono); font-size: 12px; margin-left: 6px; color: var(--muted); }
+
+.group { display: grid; gap: 8px; }
+.group + .group { margin-top: 12px; }
+.ghead { display: flex; align-items: center; gap: 8px; }
+.ghead .cnt { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.colhead, .task { display: grid; grid-template-columns: 28px minmax(0,1fr) 200px; gap: 12px; padding: 10px 12px; align-items: start; }
+.colhead { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-block: 6px; border-bottom: 1px solid var(--line); }
+.task { border-top: 1px solid var(--line); position: relative; }
+.colhead + .task { border-top: 0; }
+.task.dragging { opacity: .45; }
+.task.drop-before { box-shadow: inset 0 3px 0 var(--accent); }
+.task.drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
+.handle { border: 0; background: transparent; color: var(--muted); cursor: grab; padding: 0; width: 28px; height: 24px; border-radius: 4px; font-size: 16px; line-height: 1; }
+.handle:hover { color: var(--ink); background: var(--idle-soft); }
+.handle:active { cursor: grabbing; }
+.task h3 { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.task p { margin: 2px 0 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.task .col-main { min-width: 0; }
+.assignee { font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+.assignee.none { font-family: var(--font-body); color: var(--muted); }
+.list-hint, .pruned { margin: 0; font-size: 12px; color: var(--muted); }
+.list-hint { margin-top: 8px; }
+.pruned { margin-top: 12px; }
+
+.wsec { display: grid; gap: 10px; }
+.wsec + .wsec { margin-top: 16px; }
+.wsec h2 { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.wk { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.wk.blocked { border-color: var(--bad); }
+.wk.needs { border-color: var(--warn); }
+.wk .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wk .slug { font-family: var(--font-mono); font-size: 12px; font-weight: 500; overflow-wrap: anywhere; min-width: 0; }
+.wk .task-line { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.flag { margin: 0; font-size: 12px; padding: 4px 8px; border-radius: 6px; overflow-wrap: anywhere; }
+.flag.warn { background: var(--warn-soft); color: var(--warn); }
+.flag.bad { background: var(--bad-soft); color: var(--bad); }
+.wk dl { margin: 0; display: grid; grid-template-columns: auto minmax(0,1fr); gap: 4px 12px; font-size: 12px; }
+.wk dt { color: var(--muted); }
+.wk dd { margin: 0; overflow-wrap: anywhere; }
+.wk dd code { font-family: var(--font-mono); font-size: 11px; }
+.wk dd .btn { margin-left: 6px; }
+
+.msgs { display: grid; gap: 0; }
+.msg { padding: 10px 14px; border-top: 1px solid var(--line); display: grid; gap: 2px; }
+.msg:first-child { border-top: 0; }
+.msg time { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.msg .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg .meta { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 680px) {
+  .wrow { grid-template-columns: minmax(0,1fr) auto; }
+  .wrow .what { grid-column: 1 / -1; grid-row: 2; }
+  .colhead, .task { grid-template-columns: 28px minmax(0,1fr); }
+  .colhead span:last-child { display: none; }
+  .task .assignee { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="mark">{{GLYPH}}</span>{{TITLE}}</h1>
+      {{SUBTITLE_HTML}}
+    </div>
+    <div class="sync" id="sync"><span class="dot"></span><span id="sync-text">connecting…</span></div>
+  </header>
+
+  <section class="panel waiting" id="waiting" aria-label="Waiting on you"></section>
+
+  <section class="panel composer" id="composer">
+    <label for="msg">Tell the manager</label>
+    <textarea id="msg" placeholder="{{PLACEHOLDER}}"></textarea>
+    <div class="row">
+      <p class="hint" id="msg-hint">Goes straight to the manager session; replies land in the comment thread. ⌘/Ctrl+Enter sends.</p>
+      <button class="btn primary" id="send" type="button">Send</button>
+    </div>
+  </section>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" id="tab-tasks" data-view="tasks" aria-selected="true" aria-controls="view">Tasks<span class="n" id="n-tasks"></span></button>
+    <button class="tab" role="tab" id="tab-workers" data-view="workers" aria-selected="false" aria-controls="view">Workers<span class="n" id="n-workers"></span></button>
+    <button class="tab" role="tab" id="tab-messages" data-view="messages" aria-selected="false" aria-controls="view">Messages<span class="n" id="n-messages"></span></button>
+  </div>
+  <main id="view" role="tabpanel"></main>
+</div>
+
+<script id="dashboard-config" type="application/json">{{CONFIG_JSON}}</script>
+<script>
+(function () {
+  "use strict";
+  var CONFIG = {};
+  try { CONFIG = JSON.parse(document.getElementById("dashboard-config").textContent) || {}; } catch (e) { CONFIG = {}; }
+  var OWNER = CONFIG.owner || "";
+  var STORAGE_KEY = CONFIG.storageKey || "dashboard-view";
+  var TASK_ORDER = ["blocked", "in-review", "in-progress", "dispatched", "approved", "proposed", "parked", "done"];
+  var WK_ORDER = ["blocked", "working", "primed", "done", "parked", "collected"];
+  var PRUNE_MS = 7 * 24 * 3600 * 1000;
+  var VIEWS = ["tasks", "workers", "messages"];
+
+  var state = { tasks: [], workers: [], messages: [] };
+  var view = "tasks";
+  var db = null, comments = null, me = null, threadId = null;
+  var dragId = null;
+  var orderError = "";
+  var pendingFocus = null;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function chip(status, label) { return el("span", "chip s-" + status, label || status); }
+  function ago(ms) {
+    if (typeof ms !== "number") return "";
+    var d = Date.now() - ms;
+    if (d < 60000) return "just now";
+    if (d < 3600000) return Math.floor(d / 60000) + "m ago";
+    if (d < 86400000) return Math.floor(d / 3600000) + "h ago";
+    return new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+  function stamp(ms) {
+    var d = new Date(ms);
+    var p = function (n) { return String(n).padStart(2, "0"); };
+    return d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+  function safeUrl(u) {
+    if (typeof u !== "string") return "";
+    try { var x = new URL(u); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
+  }
+  function shortUrl(u) { return String(u).replace(/^https:\/\//, "").replace(/^www\./, "").replace(/^github\.com\//, ""); }
+  function linkEl(url, label, cls) {
+    var a = el("a", cls || "", label);
+    a.href = url; a.target = "_blank"; a.rel = "noopener";
+    return a;
+  }
+  function copyBtn(text, label) {
+    var b = el("button", "btn ghost", label);
+    b.type = "button";
+    b.addEventListener("click", function () {
+      var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = label; }, 1500); };
+      try {
+        navigator.clipboard.writeText(text).then(done, function () { b.textContent = "Copy failed"; });
+      } catch (e) { b.textContent = "Copy failed"; }
+    });
+    return b;
+  }
+  function isOld(item, status) {
+    return item.status === status && typeof item.updatedAt === "number" && item.updatedAt < Date.now() - PRUNE_MS;
+  }
+  function visibleTasks() { return state.tasks.filter(function (t) { return !isOld(t, "done"); }); }
+  function visibleWorkers() { return state.workers.filter(function (w) { return !isOld(w, "collected"); }); }
+  function taskKey(t) { return typeof t.order === "number" ? t.order : (t.priority != null ? t.priority : 99) * 1000; }
+  function sortTasks(a, b) { return taskKey(a) - taskKey(b); }
+
+  /* ---- Waiting on you ---- */
+  function renderWaiting() {
+    var items = [];
+    state.workers.forEach(function (w) {
+      if (!w.needsYou || w.status === "collected") return;
+      var url = safeUrl(w.needsYouLink) || safeUrl(w.mr);
+      var label = w.needsYouLinkLabel || w.mrLabel || (url ? shortUrl(url) : "");
+      items.push({ who: w.slug || w.id, what: String(w.needsYou), url: url, label: label, since: w.needsYouSince, attach: w.attach });
+    });
+    state.tasks.forEach(function (t) {
+      if (!OWNER || t.worker !== OWNER || t.status === "done" || t.status === "parked") return;
+      var url = safeUrl(t.link);
+      items.push({ who: "You", what: t.title || t.id, url: url, label: t.linkLabel || (url ? shortUrl(url) : ""), since: null, attach: null });
+    });
+    var box = $("waiting");
+    box.className = "panel waiting" + (items.length ? " has" : "");
+    box.replaceChildren();
+    var head = el("div", "sec-head");
+    head.appendChild(el("h2", "", "Waiting on you"));
+    head.appendChild(el("span", "pill", String(items.length)));
+    box.appendChild(head);
+    if (!items.length) { box.appendChild(el("p", "empty", "Nothing is waiting on you right now.")); return; }
+    var list = el("div", "wlist");
+    items.forEach(function (it) {
+      var row = el("div", "wrow");
+      row.appendChild(el("div", "who", it.who));
+      var what = el("div", "what");
+      what.appendChild(document.createTextNode(it.what));
+      if (it.url) what.appendChild(linkEl(it.url, it.label + " ↗", "wlink"));
+      if (typeof it.since === "number") what.appendChild(el("span", "since", ago(it.since)));
+      row.appendChild(what);
+      var act = el("div", "act");
+      if (it.attach) act.appendChild(copyBtn(String(it.attach), "Copy attach"));
+      row.appendChild(act);
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+  }
+
+  /* ---- Summary + tabs ---- */
+  function renderSummary() {
+    var box = $("summary");
+    box.replaceChildren();
+    var tasks = visibleTasks(), workers = visibleWorkers();
+    TASK_ORDER.forEach(function (s) {
+      var n = tasks.filter(function (t) { return t.status === s; }).length;
+      if (!n) return;
+      var c = chip(s, s + " ");
+      var b = el("b", "", String(n));
+      c.appendChild(b);
+      box.appendChild(c);
+    });
+    var active = workers.filter(function (w) { return w.status === "working" || w.status === "primed" || w.status === "blocked"; }).length;
+    var c2 = el("span", "chip s-working");
+    c2.appendChild(document.createTextNode(active + " active worker" + (active === 1 ? "" : "s")));
+    box.appendChild(c2);
+    $("n-tasks").textContent = String(tasks.length);
+    $("n-workers").textContent = String(workers.length);
+    $("n-messages").textContent = String(Math.min(state.messages.length, 50));
+  }
+
+  /* ---- Tasks ---- */
+  function groupTasks(status) {
+    return visibleTasks().filter(function (t) { return t.status === status; }).sort(sortTasks);
+  }
+  function renderTasks(main) {
+    var any = false;
+    TASK_ORDER.forEach(function (s) {
+      var tasks = groupTasks(s);
+      if (!tasks.length) return;
+      any = true;
+      var g = el("div", "group");
+      var h = el("div", "ghead");
+      h.appendChild(chip(s));
+      h.appendChild(el("span", "cnt", String(tasks.length)));
+      g.appendChild(h);
+      var list = el("div", "list");
+      var ch = el("div", "colhead");
+      ch.appendChild(el("span", "", ""));
+      ch.appendChild(el("span", "", "Task"));
+      ch.appendChild(el("span", "", "Worker"));
+      list.appendChild(ch);
+      tasks.forEach(function (t, i) { list.appendChild(taskRow(t, s, i, tasks.length)); });
+      g.appendChild(list);
+      main.appendChild(g);
+    });
+    if (!any) main.appendChild(el("p", "empty", "No tasks yet. The manager adds them here."));
+    else main.appendChild(el("p", "list-hint", "Drag ⠿ to reorder within a status, or focus it and press ↑/↓. The order is the priority."));
+    if (orderError) main.appendChild(el("p", "hint err", orderError));
+    var hidden = state.tasks.length - visibleTasks().length;
+    if (hidden > 0) main.appendChild(el("p", "pruned", hidden + " older done task" + (hidden === 1 ? "" : "s") + " hidden"));
+  }
+  function taskRow(t, status, i, n) {
+    var row = el("div", "task");
+    row.dataset.id = t.id;
+    row.dataset.status = status;
+    var h = el("button", "handle", "⠿");
+    h.type = "button";
+    h.draggable = true;
+    h.dataset.id = t.id;
+    h.setAttribute("aria-label", "Reorder: " + (t.title || t.id) + ". Position " + (i + 1) + " of " + n + ". Use arrow keys.");
+    h.addEventListener("dragstart", function (e) {
+      dragId = t.id;
+      row.classList.add("dragging");
+      try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", t.id); e.dataTransfer.setDragImage(row, 16, 16); } catch (err) { /* ignore */ }
+    });
+    h.addEventListener("dragend", function () { dragId = null; clearDrop(); row.classList.remove("dragging"); renderAll(); });
+    h.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      var ids = groupTasks(status).map(function (x) { return x.id; });
+      var from = ids.indexOf(t.id), to = from + (e.key === "ArrowUp" ? -1 : 1);
+      if (from < 0 || to < 0 || to >= ids.length) return;
+      ids.splice(from, 1); ids.splice(to, 0, t.id);
+      applyOrder(status, ids, t.id);
+    });
+    row.addEventListener("dragover", function (e) {
+      if (!dragId || dragId === t.id) return;
+      var src = state.tasks.find(function (x) { return x.id === dragId; });
+      if (!src || src.status !== status) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = "move"; } catch (err) { /* ignore */ }
+      var r = row.getBoundingClientRect();
+      var before = e.clientY < r.top + r.height / 2;
+      clearDrop();
+      row.classList.add(before ? "drop-before" : "drop-after");
+    });
+    row.addEventListener("drop", function (e) {
+      if (!dragId || dragId === t.id) return;
+      var src = state.tasks.find(function (x) { return x.id === dragId; });
+      if (!src || src.status !== status) return;
+      e.preventDefault();
+      var r = row.getBoundingClientRect();
+      var before = e.clientY < r.top + r.height / 2;
+      var ids = groupTasks(status).map(function (x) { return x.id; }).filter(function (x) { return x !== dragId; });
+      var at = ids.indexOf(t.id) + (before ? 0 : 1);
+      ids.splice(at, 0, dragId);
+      var moved = dragId;
+      dragId = null; clearDrop();
+      applyOrder(status, ids, moved);
+    });
+    row.appendChild(h);
+    var main = el("div", "col-main");
+    main.appendChild(el("h3", "", t.title || t.id));
+    if (t.note) main.appendChild(el("p", "", String(t.note)));
+    var url = safeUrl(t.link);
+    if (url) { var lp = el("p"); lp.appendChild(linkEl(url, (t.linkLabel || shortUrl(url)) + " ↗")); main.appendChild(lp); }
+    row.appendChild(main);
+    row.appendChild(t.worker ? el("div", "assignee", t.worker) : el("div", "assignee none", "Unassigned"));
+    return row;
+  }
+  function clearDrop() {
+    document.querySelectorAll(".drop-before,.drop-after").forEach(function (n) { n.classList.remove("drop-before", "drop-after"); });
+  }
+  function applyOrder(status, ids, focusId) {
+    var changed = [];
+    ids.forEach(function (id, k) {
+      var t = state.tasks.find(function (x) { return x.id === id; });
+      var o = (k + 1) * 10;
+      if (t && t.order !== o) { t.order = o; changed.push({ id: id, order: o }); }
+    });
+    orderError = "";
+    pendingFocus = focusId;
+    renderAll();
+    if (!changed.length || !db) return;
+    Promise.all(changed.map(function (c) { return db.doc("tasks/" + c.id).update({ order: c.order }); })).catch(function (e) {
+      orderError = "Couldn't save the new order (" + ((e && e.code) || "error") + "). Reload to see the saved order.";
+      renderAll();
+    });
+  }
+
+  /* ---- Workers ---- */
+  function wkRank(s) { var i = WK_ORDER.indexOf(s); return i < 0 ? WK_ORDER.length : i; }
+  function workerCard(w) {
+    var needs = w.needsYou && w.status !== "collected";
+    var card = el("div", "wk" + (w.status === "blocked" ? " blocked" : needs ? " needs" : ""));
+    var top = el("div", "top");
+    top.appendChild(el("span", "slug", w.slug || w.id));
+    top.appendChild(chip(w.status || "idle", w.status || "unknown"));
+    card.appendChild(top);
+    if (w.task) card.appendChild(el("p", "task-line", String(w.task)));
+    if (needs) card.appendChild(el("p", "flag warn", "Needs you: " + w.needsYou));
+    if (w.blocker) card.appendChild(el("p", "flag bad", "Waiting on: " + w.blocker));
+    var dl = el("dl");
+    function row(k, node) { dl.appendChild(el("dt", "", k)); var dd = el("dd"); dd.appendChild(node); dl.appendChild(dd); }
+    var runs = [w.host, w.harness].filter(Boolean).join(" · ");
+    if (runs) row("Runs on", document.createTextNode(runs));
+    var mr = safeUrl(w.mr);
+    if (mr) row("PR", linkEl(mr, (w.mrLabel || shortUrl(mr)) + " ↗"));
+    if (w.outcome) row("Outcome", document.createTextNode(String(w.outcome)));
+    if (w.attach && (w.status === "working" || w.status === "primed" || w.status === "blocked")) {
+      var frag = document.createDocumentFragment();
+      frag.appendChild(el("code", "", String(w.attach)));
+      frag.appendChild(copyBtn(String(w.attach), "Copy"));
+      row("Attach", frag);
+    }
+    if (typeof w.updatedAt === "number") row("Updated", document.createTextNode(ago(w.updatedAt)));
+    card.appendChild(dl);
+    return card;
+  }
+  function renderWorkers(main) {
+    var ws = visibleWorkers().sort(function (a, b) {
+      return wkRank(a.status) - wkRank(b.status) || (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+    if (!ws.length) { main.appendChild(el("p", "empty", "No workers yet. Dispatched workers appear here.")); }
+    [["Active", function (w) { return w.status !== "collected"; }], ["Collected", function (w) { return w.status === "collected"; }]].forEach(function (s) {
+      var list = ws.filter(s[1]);
+      if (!list.length) return;
+      var sec = el("section", "wsec");
+      sec.appendChild(el("h2", "", s[0]));
+      var cards = el("div", "cards");
+      list.forEach(function (w) { cards.appendChild(workerCard(w)); });
+      sec.appendChild(cards);
+      main.appendChild(sec);
+    });
+    var hidden = state.workers.length - ws.length;
+    if (hidden > 0) main.appendChild(el("p", "pruned", hidden + " older collected worker" + (hidden === 1 ? "" : "s") + " hidden"));
+  }
+
+  /* ---- Messages ---- */
+  function renderMessages(main) {
+    var ms = state.messages.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); }).slice(0, 50);
+    if (!ms.length) { main.appendChild(el("p", "empty", "Messages you send from this page are logged here.")); return; }
+    var list = el("div", "list msgs");
+    ms.forEach(function (m) {
+      var r = el("div", "msg");
+      if (typeof m.at === "number") r.appendChild(el("time", "", stamp(m.at)));
+      r.appendChild(el("div", "text", String(m.text || "")));
+      r.appendChild(el("div", "meta", m.delivered ? "Delivered to the manager" : "Logged, not delivered"));
+      list.appendChild(r);
+    });
+    main.appendChild(list);
+  }
+
+  /* ---- Render ---- */
+  function renderAll() {
+    if (dragId) return;
+    renderWaiting();
+    renderSummary();
+    var main = $("view");
+    main.replaceChildren();
+    main.setAttribute("aria-labelledby", "tab-" + view);
+    if (view === "tasks") renderTasks(main);
+    else if (view === "workers") renderWorkers(main);
+    else renderMessages(main);
+    VIEWS.forEach(function (v) { $("tab-" + v).setAttribute("aria-selected", String(v === view)); });
+    if (pendingFocus) {
+      var id = pendingFocus; pendingFocus = null;
+      var hs = main.querySelectorAll(".handle");
+      for (var i = 0; i < hs.length; i++) if (hs[i].dataset.id === id) { hs[i].focus(); break; }
+    }
+  }
+  function setView(v, persist) {
+    if (VIEWS.indexOf(v) < 0) return;
+    view = v;
+    if (persist) {
+      try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { /* ignore */ }
+      try { history.replaceState(null, "", "#" + v); } catch (e) { /* ignore */ }
+    }
+    renderAll();
+  }
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest(".tab") : null;
+    if (b) setView(b.dataset.view, true);
+  });
+  (function initView() {
+    var h = (location.hash || "").replace("#", "");
+    var s = null;
+    try { s = localStorage.getItem(STORAGE_KEY); } catch (e) { s = null; }
+    if (VIEWS.indexOf(h) >= 0) view = h; else if (VIEWS.indexOf(s) >= 0) view = s;
+  })();
+
+  /* ---- Sync ---- */
+  function setSync(text, live) {
+    $("sync").className = "sync" + (live ? " live" : "");
+    $("sync-text").textContent = text;
+  }
+
+  /* ---- Send ---- */
+  function hint(text, kind) { var h = $("msg-hint"); h.textContent = text; h.className = "hint" + (kind ? " " + kind : ""); }
+  async function logMsg(text, delivered) {
+    if (!db || !text) return;
+    try { await db.collection("messages").add({ text: text, at: Date.now(), by: me, delivered: delivered, source: "dashboard" }); } catch (e) { /* ignore */ }
+  }
+  async function send() {
+    var box = $("msg"), btn = $("send");
+    var text = box.value.trim();
+    if (!text) return;
+    if (!comments) { hint("Could not send: sign in to claude.ai to use the message box.", "err"); await logMsg(text, false); return; }
+    btn.disabled = true;
+    try {
+      var can = await comments.canSendToClaude();
+      if (can === "no_session") { hint("The manager session isn't running right now, so nothing was sent. Your text is still in the box.", "err"); await logMsg(text, false); return; }
+      if (can !== "available") { hint("Sending to the manager isn't available in this view. Your text is still in the box.", "err"); await logMsg(text, false); return; }
+      var res;
+      async function fresh() { return comments.sendToClaude({ anchor: await comments.anchorFor($("composer")), text: text }); }
+      if (threadId) {
+        try { res = await comments.sendToClaude({ threadId: threadId, text: text }); }
+        catch (e) { if (e && e.code === "not_found") res = await fresh(); else throw e; }
+      } else {
+        res = await fresh();
+      }
+      if (res && res.threadId && res.threadId !== threadId) {
+        threadId = res.threadId;
+        if (db) { try { await db.doc("meta/thread").set({ threadId: threadId }); } catch (e) { /* ignore */ } }
+      }
+      box.value = "";
+      hint("Sent. The manager replies in the comment thread.", "ok");
+      await logMsg(text, true);
+    } catch (e) {
+      var code = (e && e.code) || "error";
+      await logMsg(text, false);
+      if (code === "rate_limited") hint("Too many messages in a row. Wait a moment and send again.", "err");
+      else hint("Could not send (" + code + "). Your text is still in the box.", "err");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  $("send").addEventListener("click", send);
+  $("msg").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
+  });
+
+  /* ---- Boot ---- */
+  async function boot() {
+    renderAll();
+    try { db = await claude.use("db"); } catch (e) { db = null; }
+    if (!db) { setSync("offline: sign in to see live data", false); return; }
+    ["tasks", "workers", "messages"].forEach(function (name) {
+      db.collection(name).onSnapshot(function (snap) {
+        state[name] = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        setSync("live", true);
+        renderAll();
+      }, function (err) { setSync("sync error: " + ((err && err.code) || "unknown"), false); });
+    });
+    try { var t = await db.doc("meta/thread").get(); if (t.exists) threadId = (t.data() || {}).threadId || null; } catch (e) { /* ignore */ }
+    try { comments = await claude.use("comments"); } catch (e) { comments = null; }
+    try { var u = await claude.use("user"); if (u) me = await u.id(); } catch (e) { me = null; }
+  }
+  setInterval(renderAll, 60000);
+  boot();
+})();
+</script>
+</body>
+</html>

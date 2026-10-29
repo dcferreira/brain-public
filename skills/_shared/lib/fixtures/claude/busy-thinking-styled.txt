@@ -1,0 +1,68 @@
+
+
+[38;5;231m●[39m Still in the design pass: I've mapped every place the backend handles time on the new [38;5;153mmain[39m, about 22 Rust files plus 3
+  frontend files. Next I'll write the plan and start the TDD work.
+
+  [38;5;246mMade [1m1[0m[38;5;246m scratchpad edit [38;5;72m+83[38;5;246m, ran [1m1[0m[38;5;246m shell command [39m
+
+[38;5;231m●[39m The plan is written. Tasks 1 and 2 (the [38;5;153mZone[39m foundation and the data migration) go to a subagent; tasks 3 and 4 follow in
+  order, since only one agent works in the workspace at a time.
+
+[38;5;114m●[39m [1mAgent[0m(UTC foundation + migration) [38;5;246mSonnet 5.5[39m
+[38;5;246m  ⎿  [39mBackgrounded agent[38;5;246m (↓ to manage · ctrl+o to expand)[39m
+
+[38;5;231m●[39m I've pulled in [38;5;153mmain[39m (nudge-cooldown, #9) and rebased onto it with no conflicts. The release-wording fix sits on top.
+
+  Work on the UTC change has started. A subagent is building the first part:
+  - [1mThe timezone helper:[0m one place that converts between UTC and local time. When a local time is ambiguous (the repeated
+    hour on 25 Oct) it picks the earlier moment. When it falls in the hour skipped on 29 Mar, it lands just after the jump.
+  - [1mThe one-time database migration:[0m it shifts the existing event times back to true UTC. A version marker in the database
+    stops it running twice. Tests use a scratch database only, not your live store.
+
+  [1mRemaining steps, in order:[0m
+  1. Move the scheduler, commands, stats, calendar and MCP code over to UTC, with tests for the 25 Oct and 29 Mar clock
+     changes.
+  2. Make the frontend show times in your local timezone.
+  3. Run the migration on a copy of your live database, add the changie fragment, run the CI checks, and open the PR.
+
+  I'll report back when the first part is done.
+
+[38;5;246m✻[39m [38;5;246mWaiting for [1m1[0m[38;5;246m background agent to finish[39m
+
+[38;5;246m› Message from @general-purpose (ctrl+o to expand)[39m
+
+[38;5;231m●[39m The report looks plausible, but one risk needs checking: the MCP server and the app may open the same database, and if the
+  version check runs outside the transaction, both could shift the rows.
+
+  [38;5;246mRan [1m1[0m[38;5;246m shell command [39m
+
+[38;5;114m●[39m Agent "UTC foundation + migration" finished[38;5;246m · 3m 32s[39m
+
+  [38;5;246mRan [1m1[0m[38;5;246m shell command [39m
+
+[38;5;231m●[39m Confirmed the race condition: both the app (lib.rs:214) and MCP server (lib.rs:103) can read version 0 before their
+  transactions start, causing rows to shift twice if launched simultaneously. I'll fix this now.
+
+  [38;5;246mRan [1m1[0m[38;5;246m shell command [39m
+
+[38;5;231m●[39m No [38;5;153mbusy_timeout[39m is set, so concurrent opens during migration hit SQLITE_BUSY and crash the MCP server's panic on [38;5;153mexpect[39m.
+  I'll write a failing test simulating two connections migrating the same legacy file simultaneously.
+
+  [38;5;246mRan [1m3[0m[38;5;246m shell commands [39m
+
+[38;5;231m●[39m The first slice is done and green, but I found a race in its migration: the app and the MCP server could both run it and
+  shift the rows twice. Fixing that now.
+
+  [38;5;246mRan [1m2[0m[38;5;246m shell commands [39m
+
+[38;5;231m●[39m Writing the red test first:
+
+[38;5;174m✽[39m [38;5;174mPounci[38;5;216mng…[38;5;174m [38;5;246m(1m 0s · ↓[39m [38;5;246m4.2k tokens · thought for 1s)[39m
+
+[38;5;244m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;246m❯ [39m
+[38;5;244m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [36m[Opus 5.5][38;5;246m │ [33m]8;id=1u0fopo;file:///home/user/projects/budgebell\budgebell[38;5;246m]8;;\ [35mgit:([36m]8;id=ivt4ez;https://github.com/example-user/budgebell/commit/0bcc026\detached:0bcc026[35m]8;;\)[38;5;246m │ [2mBudgebell log UTC worker brief[0m
+  [2m[38;5;246mContext[0m[38;5;246m [32m█[2m░░░░░░░░░[0m[38;5;246m [32m11%[38;5;246m │ [2mUsage[0m[38;5;246m [94m██████[2m░░░░[0m[38;5;246m [94m59%[38;5;246m (resets in 18m)[39m
+  [32m✓[38;5;246m [35mgeneral-purpose[38;5;246m [2m[sonnet-5.5]: UTC foundation + migration[0m[38;5;246m [2m(3m 32s)[0m
+  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · ← for agents[39m

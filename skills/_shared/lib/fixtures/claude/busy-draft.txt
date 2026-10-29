@@ -1,0 +1,30 @@
+  ▝▝ ▝▝    /tmp/fx-capture-56708-20407
+
+
+❯ Read your worker brief at ~/Obsidian/vault/workers/x.md and follow its priming, then greet me.
+
+  Read 1 file, listed 2 directories, ran 1 shell command
+
+● I couldn't find the brief, so I can't follow its priming yet.
+
+  What I checked
+
+  - ~/Obsidian/vault/workers/x.md does not exist. The vault actually lives at
+    ~/Sync/Obsidian/vault/.
+  - The workers folder there has around 200 briefs, but nothing named x.md and no file starting with
+    x.
+  - The most recently touched briefs are clientco-kickoff.md, habits-github-setup.md, and
+    carco-deploy-run.md. The working directory /tmp/fx-capture-56708-20407 is empty, so it
+    gives no hint either.
+
+  Hello! Which brief did you mean? Give me the real filename, or paste the brief, and I'll read it
+  and take on the priming.
+
+✻ Brewed for 33s · done 13:25
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m❯ The persist is still running; I'll relay its result.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  [Fable 5.1] │ fx-capture-56708-20407
+  Context █░░░░░░░░░ 6% │ Usage █████░░░░░ 46% (resets in 45m) | Weekly ████████░░ 82% (resets in…
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

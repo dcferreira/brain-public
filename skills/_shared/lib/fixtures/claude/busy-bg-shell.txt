@@ -1,0 +1,68 @@
+
+● The manager's guess was right: the check refuses any PR that edits CHANGELOG.md or a .changes/v*.md file. Checking whether
+  the script has a sanctioned override, and how the other CI jobs went:
+
+  Ran 1 shell command
+
+● All other jobs pass and the release-notes check can't be satisfied from this PR per the release process docs, so I'll
+  remove the wording fix from the PR (keeping it in a separate local branch) and rebase the UTC work onto the updated main.
+
+  Ran 1 shell command
+
+● The rebase had no textual conflicts, but #10 touched quiet_os/, so new code there may still use the old convention.
+  Re-checking and re-running the gates:
+
+  Ran 1 shell command
+
+● Only the intended calendar parse is left. Quick look at what #10 added, to see whether any of it handles times:
+
+  Ran 1 shell command
+
+● #10 only uses monotonic Instant timeouts, which this change doesn't affect. Frontend gates, then force-push the rebased
+  bookmark:
+
+  Ran 1 shell command
+
+● The push succeeded—the local check's "bootstrap" result was misleading since this jj workspace lacks a git dir for reading
+  the base revision, so I'll rely on CI instead. Now updating the PR body to remove the changelog bullet, then watching CI.
+
+  Ran 2 shell commands
+  ⎿  “Report CI fix and rebase to manager” → uds:/run/user/1000/cc-socks/18470.sock
+  ⎿  Allowed by auto mode classifier
+
+● Recording progress in the worker note while CI runs:
+
+  Ran 2 shell commands
+
+› Message from @budgebell-5f: From budgebell-manager: no need to ask the user about the wording. Earlier today they said "no need
+to fix the text on v0.2… (ctrl+o to expand)
+
+● The manager says you already decided not to fix the v0.2.0 text. That means doing nothing outward, so I'll drop the local
+  commit. jj op undo can bring it back if needed.
+
+  Ran 1 shell command
+  ⎿  “Confirm wording commit dropped” → uds:/run/user/1000/cc-socks/18470.sock
+  ⎿  Allowed by auto mode classifier
+
+● PR #11 is now UTC-only, rebased onto main (#10), and its CI is running again.
+
+  - Why the earlier run failed: the "Fragment + no hand-bumped version" check rejects any normal PR that edits CHANGELOG.md
+    or .changes/v*.md. Only the bot's release/v* branches are exempt, so the v0.2.0 wording fix couldn't pass it. I didn't
+    disable the check.
+  - The wording fix: the manager relayed that you'd said not to fix the v0.2.0 text, so I deleted that local commit. The
+    published v0.2.0 notes are unchanged.
+  - The rebase: no conflicts. #10 only adds timeouts in quiet_os that don't involve clock times.
+  - Checks so far: all gates pass locally (Rust: 328 tests plus the MCP integration test; frontend check and 74 tests). On
+    the first CI run every other job passed, including macOS, so the macOS-only calendar code compiles.
+
+  I've written progress into the worker note's ## Result. Once CI is green and CodeRabbit has reviewed, I'll handle its
+  comments and set the note to blocked, waiting for you to merge.
+
+✻ Worked for 1m 51s · done 13:10 · 1 shell still running
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [Opus 5.5] │ budgebell git:(detached:0bcc026) │ Budgebell log UTC worker brief
+  Context ██░░░░░░░░ 17% │ Usage █░░░░░░░░░ 8% (resets in 4h 50m)
+  ⏵⏵ auto mode on · 1 shell · ← for agents

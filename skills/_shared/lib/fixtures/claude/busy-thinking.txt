@@ -1,0 +1,68 @@
+
+
+● Still in the design pass: I've mapped every place the backend handles time on the new main, about 22 Rust files plus 3
+  frontend files. Next I'll write the plan and start the TDD work.
+
+  Made 1 scratchpad edit +83, ran 1 shell command
+
+● The plan is written. Tasks 1 and 2 (the Zone foundation and the data migration) go to a subagent; tasks 3 and 4 follow in
+  order, since only one agent works in the workspace at a time.
+
+● Agent(UTC foundation + migration) Sonnet 5.5
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+● I've pulled in main (nudge-cooldown, #9) and rebased onto it with no conflicts. The release-wording fix sits on top.
+
+  Work on the UTC change has started. A subagent is building the first part:
+  - The timezone helper: one place that converts between UTC and local time. When a local time is ambiguous (the repeated
+    hour on 25 Oct) it picks the earlier moment. When it falls in the hour skipped on 29 Mar, it lands just after the jump.
+  - The one-time database migration: it shifts the existing event times back to true UTC. A version marker in the database
+    stops it running twice. Tests use a scratch database only, not your live store.
+
+  Remaining steps, in order:
+  1. Move the scheduler, commands, stats, calendar and MCP code over to UTC, with tests for the 25 Oct and 29 Mar clock
+     changes.
+  2. Make the frontend show times in your local timezone.
+  3. Run the migration on a copy of your live database, add the changie fragment, run the CI checks, and open the PR.
+
+  I'll report back when the first part is done.
+
+✻ Waiting for 1 background agent to finish
+
+› Message from @general-purpose (ctrl+o to expand)
+
+● The report looks plausible, but one risk needs checking: the MCP server and the app may open the same database, and if the
+  version check runs outside the transaction, both could shift the rows.
+
+  Ran 1 shell command
+
+● Agent "UTC foundation + migration" finished · 3m 32s
+
+  Ran 1 shell command
+
+● Confirmed the race condition: both the app (lib.rs:214) and MCP server (lib.rs:103) can read version 0 before their
+  transactions start, causing rows to shift twice if launched simultaneously. I'll fix this now.
+
+  Ran 1 shell command
+
+● No busy_timeout is set, so concurrent opens during migration hit SQLITE_BUSY and crash the MCP server's panic on expect.
+  I'll write a failing test simulating two connections migrating the same legacy file simultaneously.
+
+  Ran 3 shell commands
+
+● The first slice is done and green, but I found a race in its migration: the app and the MCP server could both run it and
+  shift the rows twice. Fixing that now.
+
+  Ran 2 shell commands
+
+● Writing the red test first:
+
+✽ Pouncing… (1m 0s · ↓ 4.2k tokens · thought for 1s)
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [Opus 5.5] │ budgebell git:(detached:0bcc026) │ Budgebell log UTC worker brief
+  Context █░░░░░░░░░ 11% │ Usage ██████░░░░ 59% (resets in 18m)
+  ✓ general-purpose [sonnet-5.5]: UTC foundation + migration (3m 32s)
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

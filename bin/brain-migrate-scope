@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from brain_migrate import cli_main; sys.exit(cli_main(sys.argv[1:]))

@@ -1,0 +1,68 @@
+
+[38;5;231m●[39m The diff looks sound. Next I'll rerun the checks myself, including clippy for the Windows target so that path is covered
+  too.
+
+  [38;5;246mRan [1m1[0m[38;5;246m shell command [39m
+
+[38;5;231m●[39m Checks are green on Linux: fmt, clippy and 270 tests pass. I'm now sending the fixed commits to an independent reviewer.
+
+[38;5;114m●[39m [1mAgent[0m(Review Linux quiet probes diff)
+[38;5;246m  ⎿  [39mBackgrounded agent[38;5;246m (↓ to manage · ctrl+o to expand)[39m
+
+[38;5;231m●[39m The implementation is in four commits: one each for idle, DND and mic, plus the changie fragment. I reran the checks myself
+  and fmt, clippy and the 270 tests pass on Linux. CI will check macOS and Windows.
+
+  Each probe uses the mechanism we agreed:
+  - [1mIdle:[0m reads GNOME's idle time, with the freedesktop screensaver idle time as a fallback.
+  - [1mDND:[0m treats GNOME's notification-banners setting being off as Do Not Disturb on.
+  - [1mMic:[0m counts the mic as in use when any non-monitor source is recording, so EasyEffects' virtual mic counts too.
+
+  If a desktop tool or service is missing, that probe reports "not quiet", so it can't break every scheduler tick. If a tool
+  answers with something unparsable, the probe fails loudly.
+
+  A reviewer is now going over those fixed commits. I asked it to check whether the code still compiles on macOS and Windows,
+  and whether a slow call to GNOME's idle service could stall a scheduler tick. Once its findings are in and handled, I'll
+  push the [38;5;153mbudgebell-linux-quiet-probes[39m branch and open the PR.
+
+[38;5;246m› Message from @general-purpose (ctrl+o to expand)[39m
+
+[38;5;231m●[39m The review's main points hold up. I'm having the subagent fix the ones inside probe scope:
+
+[38;5;114m●[39m [1mAgent[0m(Address review findings on probes) [38;5;246mSonnet 5.5[39m
+[38;5;246m  ⎿  [39mBackgrounded agent[38;5;246m (↓ to manage · ctrl+o to expand)[39m
+
+[38;5;114m●[39m Agent "Review Linux quiet probes diff" finished[38;5;246m · 2m 41s[39m
+
+[38;5;231m●[39m The review turned up two real issues, and a Sonnet subagent is fixing those plus three smaller ones now:
+
+  1. [1mProbes could freeze the app.[0m The shelled-out tools had no timeout, and the probes run while the app holds its main state
+     lock. If GNOME Shell or PipeWire hung, complete, skip and snooze would block until it recovered. The fix is a 2 s
+     deadline on every tool call. If a call runs over, the tool is killed and the probe treats that as "not quiet".
+  2. [1mThe mic could look in use forever.[0m The current check counts any recording mic source, so an always-on reader would pause
+     nudges indefinitely. That includes EasyEffects input processing, filter chains and level meters. The fix is to count
+     only actual recording streams from apps, skipping paused streams, desktop-audio recording, pavucontrol level meters and
+     EasyEffects' own stream. It'll be tested against real [38;5;153mpactl[39m output captured on your machine.
+  3. [1mSmaller fixes:[0m
+     - Make the tool runner swappable, so the idle fallback and "tool missing" cases can be unit-tested.
+     - Fail loudly when [38;5;153mpactl[39m returns JSON that isn't a list.
+     - Run the tools with [38;5;153mLC_ALL=C[39m so their output format doesn't depend on locale.
+
+  [1mLeft out on purpose, for the PR notes:[0m
+  - [1mLock scope:[0m the reviewer also suggested releasing the lock around the probe in [38;5;153mlist_due_now[39m. That code is in
+    [38;5;153mcommands/handlers.rs[39m, outside this worker's probe-only scope.
+  - [1mIdle-only probe:[0m the scheduler runs every probe just to read idle. That's in [38;5;153mruntime.rs[39m, which the cooldown worker owns.
+  - [1mNo log on degrade:[0m a probe that falls back to "not quiet" doesn't log anything yet.
+  - [1mOlder pactl:[0m PulseAudio before 16 has no JSON output, so mic pause can't work on Debian 11 / RHEL 9-era systems.
+  - [1mKDE idle unverified:[0m I haven't been able to check whether the screensaver fallback actually works on KDE.
+
+[38;5;244m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m❯ 
+[38;5;244m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [36m[Opus 5.5][38;5;246m │ [33m]8;id=1u0fopo;file:///home/user/projects/budgebell\budgebell[38;5;246m]8;;\ [35mgit:([36m]8;id=ivt4ez;https://github.com/example-user/budgebell/commit/0bcc026\detached:0bcc026[35m]8;;\)[38;5;246m │ [2mBudgebell Linux quiet probes[0m
+  [2m[38;5;246mContext[0m[38;5;246m [32m█[2m░░░░░░░░░[0m[38;5;246m [32m10%[38;5;246m │ [2mUsage[0m[38;5;246m [94m██████[2m░░░░[0m[38;5;246m [94m56%[38;5;246m (resets in 22m)[39m
+  [33m◐[38;5;246m [35magent[38;5;246m [2m[sonnet-5.5]: Address review findings on probes[0m[38;5;246m [2m(10s)[0m
+  [32m✓[38;5;246m [35magent[38;5;246m [2m[opus-5.5]: Review Linux quiet probes diff[0m[38;5;246m [2m(2m 40s)[0m
+  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · ← for agents[39m
+
+[1m  ● main[0m
+[38;5;246m  ◯ general-purpose[39m  [38;5;246mTrimming fixtures into f_sources.json[39m                                          [38;5;246m2m 25s · ↓ 70.5k tokens[39m
